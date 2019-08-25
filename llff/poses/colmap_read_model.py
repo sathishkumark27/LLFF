@@ -114,6 +114,7 @@ def read_cameras_binary(path_to_model_file):
     cameras = {}
     with open(path_to_model_file, "rb") as fid:
         num_cameras = read_next_bytes(fid, 8, "Q")[0]
+        print("num_cameras = ", num_cameras)
         for camera_line_index in range(num_cameras):
             camera_properties = read_next_bytes(
                 fid, num_bytes=24, format_char_sequence="iiQQ")

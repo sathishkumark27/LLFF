@@ -38,8 +38,8 @@ def load_colmap_data(realdir):
         m = np.concatenate([np.concatenate([R, t], 1), bottom], 0)
         w2c_mats.append(m)
     
-    w2c_mats = np.stack(w2c_mats, 0)
-    c2w_mats = np.linalg.inv(w2c_mats)
+    w2c_mats = np.stack(w2c_mats, 0) # how the world is transformed relative to the camera
+    c2w_mats = np.linalg.inv(w2c_mats) # how the camera is transformed relative to the world
     
     poses = c2w_mats[:, :3, :4].transpose([1,2,0])
     poses = np.concatenate([poses, np.tile(hwf[..., np.newaxis], [1,1,poses.shape[-1]])], 1)
@@ -49,6 +49,9 @@ def load_colmap_data(realdir):
     
     # must switch to [-u, r, -t] from [r, -u, t], NOT [r, u, -t]
     poses = np.concatenate([poses[:, 1:2, :], poses[:, 0:1, :], -poses[:, 2:3, :], poses[:, 3:4, :], poses[:, 4:5, :]], 1)
+    print("image names = ", perm)
+    #print("c2w poses = ", poses)    
+    #print("pts3d = ", pts3d)
     
     return poses, pts3d, perm
 
@@ -81,7 +84,9 @@ def save_poses(basedir, poses, pts3d, perm):
         
         save_arr.append(np.concatenate([poses[..., i].ravel(), np.array([close_depth, inf_depth])], 0))
     save_arr = np.array(save_arr)
-    
+    #print("Input Image Poses : ")
+    #print(save_arr)
+    np.savetxt(os.path.join(basedir, 'input_poses_bounds.txt'), save_arr, fmt='%.16f', delimiter=' ') 
     np.save(os.path.join(basedir, 'poses_bounds.npy'), save_arr)
             
 
