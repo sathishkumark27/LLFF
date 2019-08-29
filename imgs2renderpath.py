@@ -17,7 +17,8 @@ parser.add_argument('--y_axis', action='store_true')
 parser.add_argument('--z_axis', action='store_true')
 parser.add_argument('--circle', action='store_true')
 parser.add_argument('--spiral', action='store_true')
-parser.add_argument('--semisphere', action='store_true')
+parser.add_argument('--cylinder', action='store_true')
+parser.add_argument('--grid', action='store_true')
 
 args = parser.parse_args()
 
@@ -27,10 +28,11 @@ comps = [
     args.z_axis,
     args.circle,
     args.spiral,
-    args.semisphere
+    args.cylinder,
+    args.grid
 ]
 if any(comps) is False:
-    comps = [True] * 6
+    comps = [True] * 7
 print('Path components', comps)
 
 poses, bds = load_data(args.scenedir, load_imgs=False)
