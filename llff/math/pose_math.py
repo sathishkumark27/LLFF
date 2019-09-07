@@ -15,11 +15,12 @@ import mpl_toolkits.mplot3d
 def normalize(x):
     return x / np.linalg.norm(x)
 
+# https://www.3dgep.com/understanding-the-view-matrix/
 def viewmatrix(z, up, pos):
-    vec2 = normalize(z)
+    vec2 = normalize(z) #z-axis
     vec0_avg = up
-    vec1 = normalize(np.cross(vec2, vec0_avg))
-    vec0 = normalize(np.cross(vec1, vec2))
+    vec1 = normalize(np.cross(vec2, vec0_avg)) # x-axis
+    vec0 = normalize(np.cross(vec1, vec2)) # y-axis
     m = np.stack([vec0, vec1, vec2, pos], 1)
     return m
 
@@ -53,7 +54,7 @@ def render_path_axis(c2w, up, ax, rad, focal, N):
     center = c2w[:,3]
     hwf = c2w[:,4:5]
     v = c2w[:,ax] * rad    
-    for t in np.linspace(-3.,3.,N+1)[:-1]:
+    for t in np.linspace(0.,3.,N+1)[:-1]:
         c = center + t * v
         z = normalize(c - (center - focal * c2w[:,2]))
         #print(np.concatenate([viewmatrix(z, up, c), hwf], 1))
@@ -62,36 +63,32 @@ def render_path_axis(c2w, up, ax, rad, focal, N):
 
 def render_cylinder(c2w, up, rads, focal, N):
     render_poses = []
-    #print("rad = ", rad)
     center = c2w[:,3] # avg center in world co-ord sys
     hwf = c2w[:,4:5]
-    rads = np.array(list(rads) + [1.])
-    z_c = [-0.08, -0.06, -0.04, -0.02, 0.00, 0.02, 0.04, 0.06, 0.08]
-    for h in z_c :
-        for theta in np.linspace(-np.pi , 0, N+1)[:-1]:        
-            c = np.dot(c2w[:3,:4], np.array([-np.sin(theta), np.cos(theta), h, 1.]) * rads) # camera centre in world co-ord sys
-            #c = np.dot(c2w[:3,:4], np.array([-np.sin(theta), np.cos(theta), -np.sin(theta*zrate), 1.]) * rads)
-            print("theta = ", theta)
-            print("c = ", c)        
+    rads = np.array(list(rads) + [1.])    
+    heights = [i for i in range(-6, 7, 1)]   
+    #heights = [0.0]    
+    for h in heights :
+        for theta in np.linspace(0, np.pi, N+1)[:-1]: # 0 to pi is the correct range
+            c = np.dot(c2w[:3,:4], np.array([-h, 5.0 * np.cos(theta), 5.0 * np.sin(theta), 1.]) * rads) # camera centre in world co-ord sys
+            # I need to move the camera to location 'c'  and the orientation is inverse of view matrix at this location          
             z = normalize(c - np.dot(c2w[:3,:4], np.array([0,0,-focal, 1.])))
-            print("z = ", z)
-            render_poses.append(np.concatenate([viewmatrix(z, up, c), hwf], 1))
+            # render poses are view matrices(w2c transformations) to get the camera pose in
+            # world inverse the the render_poses and postion the camera in to that poses
+            render_poses.append(np.concatenate([viewmatrix(z, up, c), hwf], 1))         
     return render_poses
 
-def render_path_grid(c2w, up, ax, rad, focal, N):
+def render_path_grid(c2w, up, ax, rad_x, rad_y, focal, N):
     render_poses = []
-    #print("c2w = ", c2w)
     center = c2w[:,3]
     hwf = c2w[:,4:5]
-    v_x = c2w[:,1] * rad
-    v_z = c2w[:,2] * rad
-    for t_z in np.linspace(-3.,10.,13)[:-1]:  
-        tt_z = t_z * v_z      
+    v_x = c2w[:,1] * rad_x
+    v_y = c2w[:,0] * rad_y
+    for t_y in np.linspace(-3.,10.,13)[:-1]:  
+        tt_y = t_y * v_y      #plot_points_2d
         for t_x in np.linspace(-5.,5.,N+1)[:-1]:
-            c = center + t_x * v_x + tt_z
-            print("c, center, t_x, v_x, t_x*v_x ==", (c, center, t_x, v_x, t_x*v_x))
+            c = center + t_x * v_x + tt_y
             z = normalize(c - (center - focal * c2w[:,2]))
-            #print(np.concatenate([viewmatrix(z, up, c), hwf], 1))
             render_poses.append(np.concatenate([viewmatrix(z, up, c), hwf], 1))        
     return render_poses    
     
@@ -102,17 +99,14 @@ def render_path_spiral(c2w, up, rads, focal, zdelta, zrate, rots, N):
     hwf = c2w[:,4:5]
     
     for theta in np.linspace(0., 2. * np.pi * rots, N+1)[:-1]: # generates points on unit circle i.e r==1
-        c = np.dot(c2w[:3,:4], np.array([-np.sin(theta), np.cos(theta), -np.sin(theta*zrate), 1.]) * rads) # camera centre in world co-ord sys
-        print("theta = ", theta)
-        print("c = ", c)        
+        c = np.dot(c2w[:3,:4], np.array([-np.sin(theta), np.cos(theta), -np.sin(theta*zrate), 1.]) * rads) # camera centre in world co-ord sys     
         z = normalize(c - np.dot(c2w[:3,:4], np.array([0,0,-focal, 1.])))
-        print("z = ", z)
         render_poses.append(np.concatenate([viewmatrix(z, up, c), hwf], 1))
     return render_poses
 
  
     
-def generate_render_path(poses, bds, comps=None, N=30):
+def generate_render_path(poses, bds, comps=None, N=30, scenedir="./"):
     if comps is None:
         comps = [True]*7
     
@@ -125,29 +119,17 @@ def generate_render_path(poses, bds, comps=None, N=30):
     zdelta = close_depth * .2
 
     c2w = poses_avg(poses)
-    #print("pose_avg c2w.shape = ", c2w.shape)
-    #print("pose_avg c2w = ", c2w)
     up = normalize(poses[:3, 0, :].sum(-1))
-    #print("up.shape = ", up.shape)
-    #print("up = ", up)
-    
+        
     tt = ptstocam(poses[:3,3,:].T, c2w).T
-    #print("tt.shape = ", tt.shape) #shape = 3 X 22
-    #print("tt = ", tt)
     rads = np.percentile(np.abs(tt), 90, -1)
-    print("rads.shape = ", rads.shape)
-    print("rads = ", rads)
     pts_cam = tt.T
     pts_wld = poses[:3,3,:].T    
-    print("centre_wld = ", c2w[:3,3])
     centre_cam = ptstocam(c2w[:3,3], c2w)
-    print("centre_cam = ", centre_cam)
     origin_wld = np.array([0,0,0])
-    print("origin_wld = ", origin_wld)
     origin_wld_in_cam = ptstocam(origin_wld, c2w)
-    print("origin_wld_in_cam = ", origin_wld_in_cam)
-    plot_points_2d(pts_wld, pts_cam, centre_wld = c2w[:,3], centre_cam = centre_cam, scaling_factor=1., savepath="./",filename="basis_2d") # pts_wld and pts_cam == n X 3 shape
-    plot_points_3d(pts_wld, pts_cam, centre_wld = c2w[:,3], centre_cam = centre_cam, scaling_factor=1., savepath="./", filename="basis_3d") # pts_wld and pts_cam == n X 3 shape
+    plot_points_2d(pts_wld, pts_cam, centre_wld = c2w[:,3], centre_cam = centre_cam, scaling_factor=1., savepath=scenedir,filename="basis_2d") # pts_wld and pts_cam == n X 3 shape
+    plot_points_3d(pts_wld, pts_cam, centre_wld = c2w[:,3], centre_cam = centre_cam, scaling_factor=1., savepath=scenedir, filename="basis_3d") # pts_wld and pts_cam == n X 3 shape
 
     render_poses = []    
     
@@ -160,24 +142,24 @@ def generate_render_path(poses, bds, comps=None, N=30):
         name = "y_axis_path"
     if comps[2]:
         render_poses += render_path_axis(c2w, up, 2, shrink_factor*zdelta, focal, N)
-        name = "z_axis_path"
-    
-    rads[2] = zdelta
+        name = "z_axis_path"    
     if comps[3]:
+        rads[2] = zdelta
         render_poses += render_path_spiral(c2w, up, rads, focal, zdelta, 0., 1, N*2)
         name = "circle_axis_path"
     if comps[4]:
+        rads[2] = zdelta
         render_poses += render_path_spiral(c2w, up, rads, focal, zdelta, .5, 2, N*4)
         name = "spiral_axis_path"
     if comps[5]:
-        render_poses += render_cylinder(c2w, up, rads, focal, N*4)
+        render_poses += render_cylinder(c2w, up, rads, focal, N)
         name = "cylinder_path"
     if comps[6]:
-        render_poses += render_path_grid(c2w, up, 0, shrink_factor*rads[0], focal, N*10)
+        render_poses += render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N*10)
         name = "grid_path"        
     
     render_poses = np.array(render_poses)
-    path = "./" + name + "/"
+    path = scenedir + "/" + name + "/"
     if not os.path.exists(path):
         os.makedirs(path)
     render_path_fig(poses, render_poses, scaling_factor=1., savepath=path)
@@ -185,8 +167,8 @@ def generate_render_path(poses, bds, comps=None, N=30):
     tt = ptstocam(render_poses[:,:3,3], c2w)
     pts_wld = render_poses[:,:3,3]
     pts_cam = tt 
-    plot_points_2d(pts_wld, pts_cam, centre_wld = c2w[:,3], centre_cam = centre_cam, scaling_factor=1., savepath="./", filename="render_2d"+"_"+name) # pts_wld and pts_cam == n X 3 shape
-    plot_points_3d(pts_wld, pts_cam, centre_wld = c2w[:,3], centre_cam = centre_cam, scaling_factor=1., savepath="./", filename="render_3d"+"_"+name) # pts_wld and pts_cam == n X 3 shape 
+    plot_points_2d(pts_wld, pts_cam, centre_wld = c2w[:,3], centre_cam = centre_cam, scaling_factor=1., savepath=path, filename="render_2d"+"_"+name) # pts_wld and pts_cam == n X 3 shape
+    plot_points_3d(pts_wld, pts_cam, centre_wld = c2w[:,3], centre_cam = centre_cam, scaling_factor=1., savepath=path, filename="render_3d"+"_"+name) # pts_wld and pts_cam == n X 3 shape 
     return render_poses
 
 
@@ -203,7 +185,7 @@ def render_path_fig(poses, render_poses, scaling_factor=1., savepath=None):
     plt.plot(tt[:,1], -tt[:,0])
     #print("tt 1 = ", tt)
     tt = ptstocam(poses[:3,3,:].T, c2w) * scaling_factor
-    plt.scatter(tt[:,1], -tt[:,0])
+    plt.scatter(tt[:,1], -tt[:,0], c='b')
     #print("tt 2 = ", tt)
     plt.axis('equal')
 
@@ -211,7 +193,7 @@ def render_path_fig(poses, render_poses, scaling_factor=1., savepath=None):
     tt = ptstocam(render_poses[:,:3,3], c2w) * scaling_factor
     plt.plot(tt[:,1], tt[:,2])
     tt = ptstocam(poses[:3,3,:].T, c2w) * scaling_factor
-    plt.scatter(tt[:,1], tt[:,2])
+    plt.scatter(tt[:,1], tt[:,2], c='r')
     plt.axis('equal')
 
     if savepath is not None:
@@ -294,8 +276,8 @@ def plot_points_3d(pts_wld, pts_cam,  centre_wld = None, centre_cam = None, scal
     #fig, ax = plt.subplots(1, 1, subplot_kw={'projection':'3d', 'aspect':'equal'})
     fig, ax = plt.subplots(1, 1, subplot_kw={'projection':'3d'})
     #ax.plot_wireframe(x, y, z, color='k', rstride=1, cstride=1)
-    ax.scatter(x_c, y_c, z_c, s=100, c='b', zorder=10)
-    ax.scatter(y_w, -x_w, z_w, s=100, c='r', zorder=10)
+    ax.scatter(x_c, z_c, y_c, s=100, c='b', zorder=10)
+    ax.scatter(x_w, z_w, y_w, s=100, c='r', zorder=10)
     if centre_cam is not None:
         #ax.scatter(centre[0], centre[1], centre[2], s=100, c='g', zorder=10)   
         ax.scatter(centre_cam[1], -centre_cam[0], centre_cam[2], s=100, c='b', zorder=10)

@@ -37,7 +37,7 @@ print('Path components', comps)
 
 poses, bds = load_data(args.scenedir, load_imgs=False)
 
-render_poses = generate_render_path(poses, bds, comps, N=30)
+render_poses = generate_render_path(poses, bds, comps, N=30, scenedir=args.scenedir)
 
 if args.outname.endswith('txt'):
     
