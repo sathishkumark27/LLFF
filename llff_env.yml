@@ -1,4 +1,4 @@
-name: tf_gpu
+name: tf_gpu_llff
 channels:
   - menpo
   - conda-forge
