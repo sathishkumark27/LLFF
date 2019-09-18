@@ -17,7 +17,9 @@ parser.add_argument('--y_axis', action='store_true')
 parser.add_argument('--z_axis', action='store_true')
 parser.add_argument('--circle', action='store_true')
 parser.add_argument('--spiral', action='store_true')
-parser.add_argument('--cylinder', action='store_true')
+parser.add_argument('--cylinder_r_1', action='store_true')
+parser.add_argument('--cylinder_r_1_5', action='store_true')
+parser.add_argument('--cylinder_r_2', action='store_true')
 parser.add_argument('--grid', action='store_true')
 
 args = parser.parse_args()
@@ -28,7 +30,9 @@ comps = [
     args.z_axis,
     args.circle,
     args.spiral,
-    args.cylinder,
+    args.cylinder_r_1,
+    args.cylinder_r_1_5,
+    args.cylinder_r_2,
     args.grid
 ]
 if any(comps) is False:
