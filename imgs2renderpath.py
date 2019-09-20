@@ -17,10 +17,12 @@ parser.add_argument('--y_axis', action='store_true')
 parser.add_argument('--z_axis', action='store_true')
 parser.add_argument('--circle', action='store_true')
 parser.add_argument('--spiral', action='store_true')
-parser.add_argument('--cylinder_r_1', action='store_true')
-parser.add_argument('--cylinder_r_1_5', action='store_true')
-parser.add_argument('--cylinder_r_2', action='store_true')
-parser.add_argument('--grid', action='store_true')
+parser.add_argument('--cylinder_1', action='store_true')
+parser.add_argument('--cylinder_1_5', action='store_true')
+parser.add_argument('--cylinder_2', action='store_true')
+parser.add_argument('--grid_1', action='store_true')
+parser.add_argument('--grid_1_5', action='store_true')
+parser.add_argument('--grid_2', action='store_true')
 
 args = parser.parse_args()
 
@@ -30,13 +32,15 @@ comps = [
     args.z_axis,
     args.circle,
     args.spiral,
-    args.cylinder_r_1,
-    args.cylinder_r_1_5,
-    args.cylinder_r_2,
-    args.grid
+    args.cylinder_1,
+    args.cylinder_1_5,
+    args.cylinder_2,
+    args.grid_1,
+    args.grid_1_5,
+    args.grid_2
 ]
 if any(comps) is False:
-    comps = [True] * 7
+    comps = [True] * 11
 print('Path components', comps)
 
 poses, bds = load_data(args.scenedir, load_imgs=False)

@@ -54,7 +54,7 @@ def render_path_axis(c2w, up, ax, rad, focal, N):
     center = c2w[:,3]
     hwf = c2w[:,4:5]
     v = c2w[:,ax] * rad    
-    for t in np.linspace(-1.,1.,N+1)[:-1]:
+    for t in np.linspace(-10.,10.,N+1)[:-1]:
         c = center + t * v
         z = normalize(c - (center - focal * c2w[:,2]))
         #print(np.concatenate([viewmatrix(z, up, c), hwf], 1))
@@ -62,18 +62,19 @@ def render_path_axis(c2w, up, ax, rad, focal, N):
         render_poses.append(np.concatenate([view_matrix, hwf], 1))     
     return render_poses
 
-def render_cylinder(c2w, up, rads, focal, N, r):
+def render_cylinder(c2w, up, rads, focal, N, r, theta1=0.0, theta2=np.pi):
     render_poses = []
     #camera_poses = []
     center = c2w[:,3] # avg center in world co-ord sys
     hwf = c2w[:,4:5]
     rads = np.array(list(rads) + [1.])    
-    heights = [i/3. for i in range(-15, 15, 1)]   
+    #heights = [i for i in range(-10., 10., 1)]  
+    heights = list(np.linspace(-3., 3., 20)[:-1]) # -10 to 10 artifacts
     #heights = [0.0]  
     # pts_cam = []
     # pts_wld = []  
     for h in heights :
-        for theta in np.linspace(0, np.pi, N+1)[:-1]: # 0 to pi is the correct range           
+        for theta in np.linspace(theta1, theta2, N+1)[:-1]: # 0 to pi is the correct range           
             c = np.dot(c2w[:3,:4], np.array([-h, r * np.cos(theta), r * np.sin(theta), 1.]) * rads) # camera centre in world co-ord sys
             # I need to move the camera to location 'c'  and the orientation is inverse of view matrix at this location          
             z = normalize(c - np.dot(c2w[:3,:4], np.array([0,0,-focal, 1.])))
@@ -82,15 +83,15 @@ def render_cylinder(c2w, up, rads, focal, N, r):
             render_poses.append(np.concatenate([view_matrix, hwf], 1))
     return render_poses
 
-def render_path_grid(c2w, up, ax, rad_x, rad_y, focal, N):
+def render_path_grid(c2w, up, ax, rad_x, rad_y, focal, N, len):
     render_poses = []
     center = c2w[:,3]
     hwf = c2w[:,4:5]
     v_x = c2w[:,1] * rad_x
     v_y = c2w[:,0] * rad_y
-    for t_y in np.linspace(-5.,5.,N+1)[:-1]:  
+    for t_y in np.linspace(-len, len, N+1)[:-1]:        
         tt_y = t_y * v_y      #plot_points_2d
-        for t_x in np.linspace(-2.,2.,N+1)[:-1]:
+        for t_x in np.linspace(-len, len, N+1)[:-1]:
             c = center + t_x * v_x + tt_y
             z = normalize(c - (center - focal * c2w[:,2]))
             render_poses.append(np.concatenate([viewmatrix(z, up, c), hwf], 1))        
@@ -130,14 +131,14 @@ def generate_render_path(poses, bds, comps=None, N=30, scenedir="./"):
     render_poses = [] 
 
     if comps[0]:
-        render_poses += render_path_axis(c2w, up, 1, shrink_factor*rads[1], focal, N)
+        render_poses += render_path_axis(c2w, up, 1, shrink_factor*rads[1], focal, N*50)
         #render_poses += render_path_axis(c2w, up, 1, rads, focal, N)
         name = "x_axis_path"
     if comps[1]:
-        render_poses += render_path_axis(c2w, up, 0, shrink_factor*rads[0], focal, N)
+        render_poses += render_path_axis(c2w, up, 0, shrink_factor*rads[0], focal, N*50)
         name = "y_axis_path"
     if comps[2]:
-        render_poses += render_path_axis(c2w, up, 2, shrink_factor*zdelta, focal, N)
+        render_poses += render_path_axis(c2w, up, 2, shrink_factor*zdelta, focal, N*50)
         name = "z_axis_path"    
     if comps[3]:
         rads[2] = zdelta
@@ -149,19 +150,26 @@ def generate_render_path(poses, bds, comps=None, N=30, scenedir="./"):
         name = "spiral_axis_path"
     if comps[5]:
         rads[2] = zdelta        
-        render_poses += render_cylinder(c2w, up, rads, focal, N*4, 1.0)
-        name = "cylinder_path_r_1"
+        render_poses += render_cylinder(c2w, up, rads, focal, N*4, 1.0, theta1=0.0, theta2=np.pi)
+        name = "cylinder_path_1"
     if comps[6]:
-        rads[2] = zdelta        
-        render_poses += render_cylinder(c2w, up, rads, focal, N*4, 1.5)
-        name = "cylinder_path_r_1_5"        
+        rads[2] = zdelta 
+        #theta1=np.pi/6., theta2=5*np.pi/6.       
+        render_poses += render_cylinder(c2w, up, rads, focal, N*4, 1.5, theta1=0., theta2=np.pi)
+        name = "cylinder_path_1_5"        
     if comps[7]:
         rads[2] = zdelta        
-        render_poses += render_cylinder(c2w, up, rads, focal, N*4, 2.0)
-        name = "cylinder_path_r_2"        
+        render_poses += render_cylinder(c2w, up, rads, focal, N*4, 2.0, theta1=np.pi/4., theta2=3*np.pi/4.)
+        name = "cylinder_path_2"        
     if comps[8]:
-        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N*2)
-        name = "grid_path"        
+        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N*2, 1.)
+        name = "grid_path_1" 
+    if comps[9]:
+        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N*2, 1.5)
+        name = "grid_path_1_5" 
+    if comps[10]:
+        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N*2, 2.)
+        name = "grid_path_2"                        
     
     render_poses = np.array(render_poses)
     path = scenedir + "/" + name + "/"
