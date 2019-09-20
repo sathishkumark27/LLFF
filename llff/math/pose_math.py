@@ -69,7 +69,7 @@ def render_cylinder(c2w, up, rads, focal, N, r, theta1=0.0, theta2=np.pi):
     hwf = c2w[:,4:5]
     rads = np.array(list(rads) + [1.])    
     #heights = [i for i in range(-10., 10., 1)]  
-    heights = list(np.linspace(-3., 3., 20)[:-1]) # -10 to 10 artifacts
+    heights = list(np.linspace(-3., 3., 7)[:-1]) # -10 to 10 artifacts
     #heights = [0.0]  
     # pts_cam = []
     # pts_wld = []  

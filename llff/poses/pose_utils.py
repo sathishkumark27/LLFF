@@ -62,7 +62,7 @@ def save_poses(basedir, poses, pts3d, perm):
     for k in pts3d:
         pts_arr.append(pts3d[k].xyz)
         cams = [0] * poses.shape[-1] # use for natural scenes
-        #cams = [0] * 50 # use of replica scenes 72 == num of images in images folder
+        #cams = [0] * 120 # use of replica scenes 72 == num of images in images folder
         for ind in pts3d[k].image_ids:
             cams[ind-1] = 1
         vis_arr.append(cams)
