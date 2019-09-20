@@ -162,13 +162,13 @@ def generate_render_path(poses, bds, comps=None, N=30, scenedir="./"):
         render_poses += render_cylinder(c2w, up, rads, focal, N*4, 2.0, theta1=np.pi/4., theta2=3*np.pi/4.)
         name = "cylinder_path_2"        
     if comps[8]:
-        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N*2, 1.)
+        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N, 1.)
         name = "grid_path_1" 
     if comps[9]:
-        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N*2, 1.5)
+        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N, 1.5)
         name = "grid_path_1_5" 
     if comps[10]:
-        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N*2, 2.)
+        render_poses = render_path_grid(c2w, up, 0, shrink_factor*rads[1], shrink_factor*rads[0], focal, N, 2.)
         name = "grid_path_2"                        
     
     render_poses = np.array(render_poses)
